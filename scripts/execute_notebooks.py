@@ -30,6 +30,8 @@ def main():
         ]
         if errors:
             raise RuntimeError(f"{path}: {len(errors)} errors")
+        for cell in notebook.cells:
+            cell.metadata.pop("execution", None)  # omit run-specific timestamps
         nbformat.write(notebook, path)
         print(f"PASS {path.relative_to(ROOT)}")
 

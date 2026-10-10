@@ -16,12 +16,11 @@ C = lambda source: ("code", source)
 
 def write_chapter(number, slug, cells):
     notebook = nbf.v4.new_notebook()
-    notebook.cells = [
-        nbf.v4.new_markdown_cell(source)
-        if kind == "markdown"
-        else nbf.v4.new_code_cell(source)
-        for kind, source in cells
-    ]
+    notebook.cells = []
+    for index, (kind, source) in enumerate(cells, start=1):
+        cell = nbf.v4.new_markdown_cell(source) if kind == "markdown" else nbf.v4.new_code_cell(source)
+        cell.id = f"chapter-{number:02d}-cell-{index:02d}"
+        notebook.cells.append(cell)
     notebook.metadata = {
         "kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"},
         "language_info": {"name": "python", "version": "3.12"},
@@ -273,4 +272,208 @@ assert np.isclose(w, .5, atol=1e-3)"""),
 - Turunan bisa diperiksa dengan *finite difference* untuk menangkap kesalahan aljabar/kode.
 - Learning rate adalah bagian penting dari algoritme; nilai besar tidak selalu lebih cepat.
 - Menghafal satu pasangan input–target berbeda dari mempelajari pola yang berlaku pada contoh baru. Evaluasi generalisasi masih diperlukan."""),
+])
+
+
+write_chapter(5, "Generalizing_Gradient_Descent", [
+    M("""# Bab 5 — Learning Multiple Weights at a Time
+
+**Acuan:** Trask, *Grokking Deep Learning*, Bab 5, hlm. 79–98. Contoh latihan dalam notebook ini adalah implementasi orisinal dengan data kecil/sintetis untuk menelusuri gradien dan dimensi.
+
+**Tujuan belajar:** memperluas pembaruan satu bobot menjadi vektor dan matriks bobot, memahami *weight pressure*, serta menjelaskan efek membekukan parameter."""),
+    C("""import numpy as np
+import matplotlib.pyplot as plt
+
+features = np.array([8.5, .65, 1.2])
+weights = np.array([.10, .20, -.10])
+target = 1.0
+prediction = float(features @ weights)
+print('Prediksi awal:', round(prediction, 3))"""),
+    M("""## 1. Banyak input, satu output
+
+Jika $\\hat y=x^\\top w$ dan $L=(\\hat y-y)^2$, maka turunan terhadap seluruh bobot adalah $\\nabla_wL=2(\\hat y-y)x$. Jadi semua bobot menerima sinyal error yang sama tetapi dikalikan fitur yang terhubung dengannya. Input nol menghasilkan gradien nol untuk bobot itu pada contoh tersebut. Skala input besar menghasilkan langkah lebih besar; karena itu normalisasi dan learning rate saling berhubungan."""),
+    C("""delta = prediction - target
+gradient = 2 * delta * features
+learning_rate = .001
+new_weights = weights - learning_rate * gradient
+new_loss = (features @ new_weights - target) ** 2
+old_loss = (prediction - target) ** 2
+print('Gradien per bobot:', gradient.round(4))
+print('Bobot setelah update:', new_weights.round(4))
+print('Loss:', round(old_loss, 6), '→', round(float(new_loss), 6))
+assert new_loss < old_loss"""),
+    M("""## 2. Membekukan satu bobot
+
+Jika sebuah bobot dibekukan, gradien efektifnya dibuat nol. Prediksi masih dapat berubah karena bobot lain diperbarui, tetapi ruang solusi menjadi lebih sempit. Dalam eksperimen nyata, membekukan bobot dapat dipakai untuk mengisolasi peran fitur/layer; satu contoh saja tidak cukup untuk menyimpulkan kepentingan fitur secara umum."""),
+    C("""frozen_gradient = gradient.copy()
+frozen_gradient[1] = 0.0
+frozen_update = weights - learning_rate * frozen_gradient
+print('Bobot ke-2 tetap:', weights[1], '→', frozen_update[1])
+print('Prediksi dengan bobot beku:', round(float(features @ frozen_update), 4))
+assert frozen_update[1] == weights[1]"""),
+    M("""## 3. Satu input, banyak output
+
+Jika $\\hat{\\boldsymbol y}=x\\boldsymbol w$ dan loss adalah jumlah squared errors, setiap output mempunyai delta sendiri. Gradien $2x(\\hat{\\boldsymbol y}-\\boldsymbol y)$ tetap berbentuk vektor. Output yang targetnya berbeda dapat menarik bobot ke arah berbeda; tidak ada keharusan semua bobot bergerak searah."""),
+    C("""single_input = .65
+multi_weights = np.array([.3, .2, .9])
+goals = np.array([1., 0., .2])
+multi_prediction = single_input * multi_weights
+multi_gradient = 2 * single_input * (multi_prediction - goals)
+print('Prediksi:', multi_prediction.round(3))
+print('Gradien:', multi_gradient.round(3))
+assert multi_prediction.shape == goals.shape"""),
+    M("""## 4. Banyak input dan banyak output: matriks gradien
+
+Untuk $n$ contoh, $X\\in\\mathbb R^{n\\times d}$, $W\\in\\mathbb R^{d\\times k}$, dan $Y\\in\\mathbb R^{n\\times k}$. Kita definisikan $L=\\frac1n\\sum_{i,j}(XW-Y)_{ij}^2$; gradiennya $\\nabla_W L=\\frac{2}{n}X^\\top(XW-Y)$. Faktor pembagi hanya $n$, bukan $nk$, karena loss yang dipilih menjumlahkan output per contoh. Konvensi loss yang berbeda menghasilkan faktor gradien berbeda dan perlu learning rate yang sesuai."""),
+    C("""X = np.array([[1.,0.,0.], [0.,1.,0.], [0.,0.,1.],
+              [1.,1.,0.], [1.,0.,1.], [0.,1.,1.]])
+W_true = np.array([[.5,-.2], [-.3,.7], [.8,.1]])
+Y = X @ W_true             # target sintetis, tanpa noise
+rng = np.random.default_rng(5)
+W = rng.normal(0, .25, size=(3, 2))
+
+def loss_and_gradient(W):
+    error = X @ W - Y
+    return float(np.sum(error**2) / len(X)), 2 * X.T @ error / len(X)
+
+loss0, grad0 = loss_and_gradient(W)
+eps = 1e-6
+probe = np.zeros_like(W); probe[0, 0] = eps
+finite_difference = (loss_and_gradient(W + probe)[0] - loss_and_gradient(W - probe)[0]) / (2 * eps)
+print('Shape X/W/Y/grad:', X.shape, W.shape, Y.shape, grad0.shape)
+print('Gradien analitik vs numerik W[0,0]:', round(grad0[0,0], 6), round(finite_difference, 6))
+assert np.isclose(grad0[0,0], finite_difference, atol=1e-6)"""),
+    M("""## 5. Latih semua bobot dan baca hasil
+
+Setiap langkah di bawah memakai seluruh dataset (*full batch*). Jika data mengandung noise atau train set kecil, loss training yang sangat rendah bisa berarti overfitting. Di sini target sengaja diciptakan oleh matriks linear yang sama, sehingga mendekati nol justru hasil yang diharapkan secara konstruksi—bukan bukti keunggulan model pada persoalan nyata."""),
+    C("""history = []
+for _ in range(250):
+    loss, grad = loss_and_gradient(W)
+    history.append(loss)
+    W -= .2 * grad
+print('Loss awal/akhir:', round(history[0], 6), round(history[-1], 9))
+print('Bobot terpelajari:\\n', W.round(3))
+print('Bobot pembuat target:\\n', W_true)
+fig, ax = plt.subplots(figsize=(6, 3))
+ax.plot(history); ax.set(xlabel='Iterasi', ylabel='Loss', title='Belajar matriks bobot')
+plt.tight_layout(); plt.show()
+assert np.allclose(W, W_true, atol=1e-3)"""),
+    M("""### Ringkasan dan refleksi
+
+- Untuk satu output, gradien bobot sebanding dengan input dan error output.
+- Untuk banyak output dan contoh, outer product/dot product menyatukan semua kontribusi dalam matriks.
+- Pemeriksaan shape dan gradien numerik membantu menangkap bug yang sulit terlihat dari loss saja.
+- Bobot yang besar tidak otomatis berarti fitur penting tanpa mempertimbangkan skala, korelasi antarf fitur, dan validasi data baru."""),
+])
+
+
+write_chapter(6, "Backpropagation", [
+    M("""# Bab 6 — Building Your First Deep Neural Network: Backpropagation
+
+**Acuan:** Trask, *Grokking Deep Learning*, Bab 6, hlm. 99–131. Pola empat lampu jalan dari buku dipakai sebagai dataset pedagogis kecil; implementasi loss, aktivasi output, gradien, dan diagnostik ditulis mandiri. Model ini hanya demonstrasi mekanisme, **bukan** sistem penentu keselamatan jalan.
+
+**Tujuan belajar:** memahami matriks data, full-batch/SGD/mini-batch, kebutuhan nonlinieritas, atribusi error ke hidden layer, dan keterbatasan generalisasi."""),
+    C("""import numpy as np
+import matplotlib.pyplot as plt
+
+# Dua lampu yang berubah dan satu fitur konstan: XOR pada dua lampu pertama.
+# Target 1 berarti 'walk' dalam cerita buku; ini bukan aturan lalu lintas nyata.
+X = np.array([[1.,0.,1.], [0.,1.,1.], [0.,0.,1.], [1.,1.,1.]])
+y = np.array([[1.], [1.], [0.], [0.]])
+print('X:', X.shape, 'y:', y.shape)
+print(np.column_stack([X, y]))
+assert X.shape == (4, 3) and y.shape == (4, 1)"""),
+    M("""## 1. Dari matriks ke generalisasi
+
+Setiap baris $X$ adalah satu contoh; setiap kolom adalah fitur. Contoh yang sama/serupa bisa muncul berulang, tetapi empat pola ini sangat kecil. Model yang cocok sempurna pada keempatnya belum terbukti bekerja pada kondisi lampu berbeda, data bising, maupun lokasi nyata. Satu kombinasi bobot bisa secara kebetulan memprediksi satu baris dengan benar; melihat **seluruh** dataset mencegah kesimpulan dari satu baris saja.
+
+Pada pola ini, label adalah XOR dua lampu pertama. Fungsi linear tunggal tidak bisa memisahkan keempat kombinasi tersebut. Kita buktikan secara numerik melalui baseline logistic linear, lalu tambahkan hidden layer."""),
+    C("""def sigmoid(z):
+    z = np.clip(z, -40, 40)
+    return 1 / (1 + np.exp(-z))
+
+linear_weights = np.zeros((3, 1))
+for _ in range(1200):
+    p = sigmoid(X @ linear_weights)
+    linear_weights -= .4 * (X.T @ (p - y) / len(X))
+linear_probs = sigmoid(X @ linear_weights)
+print('Prediksi model linear:', linear_probs.ravel().round(3))
+print('Akurasi training linear:', np.mean((linear_probs >= .5) == y))"""),
+    M("""## 2. Mengapa hidden layer perlu nonlinieritas?
+
+Dua perkalian matriks tanpa aktivasi setara satu transformasi linear: $(XW_1)W_2=X(W_1W_2)$. ReLU $\\max(0,z)$ membuat komposisi dapat membentuk batas keputusan nonlinier. Di sini output memakai sigmoid agar bernilai antara 0 dan 1, dan binary cross-entropy (BCE) sebagai loss. Sigmoid/BCE adalah pilihan pedagogis tambahan; contoh buku memakai output linear/squared error. Perubahan ini tidak mengubah inti aturan rantai backpropagation."""),
+    C("""# Seed 1 menghasilkan beberapa unit ReLU aktif. Inisialisasi lain bisa macet
+# pada model kecil ini; contoh seed 7 berhenti dekat peluang 0.5.
+rng = np.random.default_rng(1)
+W1 = rng.normal(0, .6, size=(3, 8))
+b1 = np.zeros((1, 8))
+W2 = rng.normal(0, .6, size=(8, 1))
+b2 = np.zeros((1, 1))
+
+def forward(W1, b1, W2, b2):
+    z1 = X @ W1 + b1
+    h = np.maximum(0, z1)
+    logits = h @ W2 + b2
+    return z1, h, sigmoid(logits)
+
+def bce(probabilities):
+    p = np.clip(probabilities, 1e-10, 1 - 1e-10)
+    return float(-np.mean(y * np.log(p) + (1-y) * np.log(1-p)))
+
+z1, h, p = forward(W1, b1, W2, b2)
+print('W1/W2:', W1.shape, W2.shape, 'hidden/output:', h.shape, p.shape)
+print('BCE awal:', round(bce(p), 4))"""),
+    M("""## 3. Backpropagation dan chain rule
+
+Dengan $m$ contoh, $Z_1=XW_1+b_1$, $H=\\mathrm{ReLU}(Z_1)$, dan $P=\\sigma(HW_2+b_2)$, kombinasi sigmoid+BCE memberi $dZ_2=(P-Y)/m$. Gradien output adalah $dW_2=H^\\top dZ_2$. Error hidden diperoleh dengan chain rule: $dZ_1=(dZ_2W_2^\\top)\\odot\\mathbf{1}[Z_1>0]$. Maka $dW_1=X^\\top dZ_1$. Faktor $\\mathbf{1}[Z_1>0]$ memblokir aliran gradien melalui ReLU yang tidak aktif. Kita hitung seluruh gradien **sebelum** memperbarui bobot agar satu langkah konsisten."""),
+    C("""def gradients(W1, b1, W2, b2):
+    z1, h, p = forward(W1, b1, W2, b2)
+    dz2 = (p - y) / len(X)
+    dW2 = h.T @ dz2
+    db2 = dz2.sum(axis=0, keepdims=True)
+    dz1 = (dz2 @ W2.T) * (z1 > 0)
+    dW1 = X.T @ dz1
+    db1 = dz1.sum(axis=0, keepdims=True)
+    return dW1, db1, dW2, db2
+
+dW1, db1, dW2, db2 = gradients(W1, b1, W2, b2)
+eps = 1e-5
+W1_plus, W1_minus = W1.copy(), W1.copy()
+W1_plus[0, 0] += eps; W1_minus[0, 0] -= eps
+numeric = (bce(forward(W1_plus, b1, W2, b2)[2]) - bce(forward(W1_minus, b1, W2, b2)[2])) / (2 * eps)
+print('Gradien W1[0,0], analitik/numerik:', round(dW1[0,0], 7), round(numeric, 7))
+assert np.isclose(dW1[0,0], numeric, atol=1e-6)"""),
+    M("""## 4. Full-batch, stochastic, dan mini-batch
+
+Full-batch menghitung satu pembaruan dari semua $m$ contoh; stochastic gradient descent (SGD) memperbarui per contoh; mini-batch memakai kelompok berukuran antara keduanya. Rumus backprop sama, hanya baris $X,Y$ dalam setiap pembaruan yang berubah. Batch kecil memberi gradien lebih bising namun lebih sering diperbarui; full batch memberi gradien lebih stabil pada dataset tetap. Di bawah kita pilih full batch karena empat contoh cukup untuk melihat aljabar tanpa kode pengacakan tambahan."""),
+    C("""losses = []
+learning_rate = .5
+for epoch in range(5000):
+    _, _, probabilities = forward(W1, b1, W2, b2)
+    losses.append(bce(probabilities))
+    gW1, gb1, gW2, gb2 = gradients(W1, b1, W2, b2)
+    W1 -= learning_rate * gW1
+    b1 -= learning_rate * gb1
+    W2 -= learning_rate * gW2
+    b2 -= learning_rate * gb2
+
+_, hidden, probabilities = forward(W1, b1, W2, b2)
+print('BCE awal/akhir:', round(losses[0], 4), round(losses[-1], 6))
+print('Probabilitas training:', probabilities.ravel().round(3))
+print('Target:', y.ravel().astype(int))
+print('Akurasi training:', np.mean((probabilities >= .5) == y))
+fig, ax = plt.subplots(figsize=(6, 3))
+ax.plot(losses); ax.set(xlabel='Epoch', ylabel='Binary cross-entropy', title='Pelatihan dua layer')
+plt.tight_layout(); plt.show()
+assert np.array_equal((probabilities >= .5).astype(int), y.astype(int))"""),
+    M("""## 5. Apa yang telah dan belum dibuktikan?
+
+Jaringan dua layer menemukan pemetaan nonlinier untuk keempat pola latihan. Hasil ini mendemonstrasikan forward pass, chain rule, dan pembaruan bobot, **bukan** estimasi akurasi di dunia nyata. Dataset hanya empat pola tanpa split independen; output tidak layak dipakai sebagai aturan menyeberang jalan. Penilaian model nyata memerlukan data representatif yang lebih besar, pemisahan train/validation/test, pemeriksaan bias, serta batas penggunaan yang aman.
+
+### Ringkasan
+
+- Hidden layer menciptakan representasi intermediate; nonlinieritas membuatnya lebih ekspresif dari satu transformasi linear.
+- Backpropagation mengatribusikan error output ke setiap bobot melalui chain rule.
+- Gradien bisa diperiksa dengan beda hingga sebelum training panjang. Hasil juga peka terhadap inisialisasi: ReLU yang tidak aktif dapat membuat gradien tersekat.
+- Loss training menurun dan akurasi training sempurna tidak sama dengan generalisasi."""),
 ])
