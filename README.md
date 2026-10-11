@@ -1,6 +1,6 @@
-# Grokking Deep Learning — Reproduksi Bab 1–6
+# Grokking Deep Learning — Reproduksi Bab 1–10
 
-Proyek tugas individu kelas Deep Learning berdasarkan Andrew W. Trask, *Grokking Deep Learning* (Manning, 2019). Enam notebook berisi rangkuman teori, implementasi NumPy yang ditulis mandiri, hasil eksekusi, dan refleksi keterbatasan. Ini **bukan** salinan teks maupun listing kode buku. Akhiran `deep-learning` pada nama repository mengikuti penamaan tugas kelas.
+Proyek tugas individu kelas Deep Learning berdasarkan Andrew W. Trask, *Grokking Deep Learning* (Manning, 2019). Sepuluh notebook berisi rangkuman teori, implementasi NumPy yang ditulis mandiri, hasil eksekusi, dan refleksi keterbatasan. Ini **bukan** salinan teks maupun listing kode buku. Akhiran `deep-learning` pada nama repository mengikuti penamaan tugas kelas.
 
 | Bab | Notebook | Ringkasan |
 |---|---|---|
@@ -10,6 +10,10 @@ Proyek tugas individu kelas Deep Learning berdasarkan Andrew W. Trask, *Grokking
 | 4. Gradient Descent | [Notebook](Chapter_04_Gradient_Descent/notebook.ipynb) | Predict–compare–learn, turunan squared error, pemeriksaan gradien numerik, learning rate, konvergensi/divergensi. |
 | 5. Generalizing Gradient Descent | [Notebook](Chapter_05_Generalizing_Gradient_Descent/notebook.ipynb) | Gradien vektor dan matriks untuk banyak input/output, efek membekukan bobot, dan training full-batch. |
 | 6. Backpropagation | [Notebook](Chapter_06_Backpropagation/notebook.ipynb) | Data lampu jalan pedagogis, batas model linear pada XOR, jaringan dua layer dengan ReLU, sigmoid/BCE, chain rule, dan evaluasi kritis hasil training. |
+| 7. Visualizing Neural Networks | [Notebook](Chapter_07_Visualizing_Neural_Networks/notebook.ipynb) | Diagram layer, dimensi matriks, jumlah parameter, dan kesetaraan diagram–persamaan–kode. Bab yang terutama konseptual. |
+| 8. Regularization and Batching | [Notebook](Chapter_08_Regularization_and_Batching/notebook.ipynb) | Train/validation/test, overfitting, early stopping, inverted dropout, serta mini-batch pada digit 8×8 offline. |
+| 9. Activation Functions | [Notebook](Chapter_09_Activation_Functions/notebook.ipynb) | ReLU/sigmoid/tanh, turunan, softmax stabil, cross-entropy, pemeriksaan gradien, dan klasifikasi tiga kelas sintetis. |
+| 10. Convolutional Neural Networks | [Notebook](Chapter_10_Convolutional_Neural_Networks/notebook.ipynb) | Weight sharing, feature map, dimensi/jumlah parameter, backprop kernel, dan CNN kecil pada digit 8×8 offline. |
 
 ## Menjalankan
 
@@ -23,11 +27,11 @@ python -m pip install -r requirements.txt
 python scripts/execute_notebooks.py
 ```
 
-Buka notebook `.ipynb` di VS Code/Jupyter atau Google Colab dan jalankan sel secara berurutan. Semua contoh hanya memerlukan NumPy dan Matplotlib; tidak ada dataset eksternal yang harus diunduh. Generator sumber notebook ada di `scripts/build_notebooks.py`; jika mengubah generator, jalankan generator lalu `execute_notebooks.py` untuk memperbarui output. Random seed membuat contoh dapat diulang, meskipun detail angka/plot dapat sedikit berubah dengan versi paket berbeda.
+Buka notebook `.ipynb` di VS Code/Jupyter atau Google Colab dan jalankan sel secara berurutan. Bab 8 dan 10 memakai dataset digit 8×8 yang dibundel dalam scikit-learn; tidak ada dataset eksternal yang harus diunduh. Generator sumber notebook ada di `scripts/build_notebooks.py`; jika mengubah generator, jalankan generator lalu `execute_notebooks.py` untuk memperbarui output. Kedua skrip menerima nomor bab opsional, misalnya `python scripts/execute_notebooks.py 7 8`. Random seed membuat contoh dapat diulang, meskipun detail angka/plot dapat sedikit berubah dengan versi paket berbeda.
 
 ## Metode, sumber, dan integritas akademik
 
-- **Acuan utama:** Trask, A. W. (2019), *Grokking Deep Learning*, Manning, Bab 1–6. Tautan PDF dibagikan pengajar di sheet tugas; PDF tidak disertakan di repo demi menghormati hak cipta.
-- **Cakupan:** penjelasan dan implementasi konsep inti Bab 1–6, bukan transkripsi lengkap seluruh listing atau halaman buku. Bab 1–2 didominasi teori sesuai sifat babnya. Bab 7–10 sengaja belum disertakan karena tenggatnya terpisah.
-- **Contoh data:** array kecil/sintetis. Empat pola lampu jalan pada Bab 6 mengikuti masalah pedagogis buku, bukan pengamatan lalu lintas nyata. Bab 6 memakai sigmoid dan binary cross-entropy sebagai adaptasi pedagogis dari contoh output linear/squared error di buku; aturan chain rule tetap dijabarkan.
+- **Acuan utama:** Trask, A. W. (2019), *Grokking Deep Learning*, Manning, Bab 1–10. Tautan PDF dibagikan pengajar di sheet tugas; PDF tidak disertakan di repo demi menghormati hak cipta.
+- **Cakupan:** penjelasan dan implementasi konsep inti Bab 1–10, bukan transkripsi lengkap seluruh listing atau halaman buku. Bab 1–2 dan 7 didominasi teori sesuai sifat babnya. Bab 11–16 di luar cakupan tugas tahap ini.
+- **Contoh data:** array kecil/sintetis, serta dataset digit offline dari scikit-learn pada Bab 8 dan 10 sebagai adaptasi dari MNIST buku. Empat pola lampu jalan pada Bab 6 mengikuti masalah pedagogis buku, bukan pengamatan lalu lintas nyata. Bab 6 memakai sigmoid dan binary cross-entropy sebagai adaptasi pedagogis dari contoh output linear/squared error di buku; aturan chain rule tetap dijabarkan.
 - **Batas interpretasi:** kecocokan sempurna pada empat contoh training tidak membuktikan generalisasi. Tidak ada klaim keselamatan jalan atau kinerja model nyata. Kode dan uraian ditulis secara mandiri, dengan atribusi ke sumber konsep.
