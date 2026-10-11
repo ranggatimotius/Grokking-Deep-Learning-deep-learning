@@ -1,6 +1,7 @@
 """Execute and verify all chapter notebooks from the repository root."""
 
 from pathlib import Path
+import sys
 
 import nbformat
 from nbclient import NotebookClient
@@ -11,6 +12,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def main():
     paths = sorted(ROOT.glob("Chapter_*/notebook.ipynb"))
+    if sys.argv[1:]:
+        selected = {int(value) for value in sys.argv[1:]}
+        paths = [path for path in paths if int(path.parent.name.split("_")[1]) in selected]
     if not paths:
         raise RuntimeError("No chapter notebooks found")
     for path in paths:
