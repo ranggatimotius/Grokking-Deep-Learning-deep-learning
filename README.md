@@ -1,3 +1,5 @@
+> [Agent handoff](HANDOFF.md) — current direction, branch, decisions, verification and next work.
+
 # Grokking Deep Learning — Reproduksi Bab 1–15
 
 Proyek tugas individu kelas Deep Learning berdasarkan Andrew W. Trask, *Grokking Deep Learning* (Manning, 2019). Lima belas notebook berisi rangkuman teori, implementasi yang ditulis mandiri, hasil eksekusi, dan refleksi keterbatasan. Ini **bukan** salinan teks maupun listing kode buku. Akhiran `deep-learning` pada nama repository mengikuti penamaan tugas kelas.
